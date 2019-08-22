@@ -1,23 +1,26 @@
 {
-	"name": "sprite-generator-windows",
-	"version": "1.0.0",
-	"description": "根据svg文件生成mapbox雪碧图(windows版本)",
-	"main": "app.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"bin": {
-		"sprite-generator-windows": "./bin/sprite-generator-windows.js"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/yongxinyuan/sprite-generator-windows.git"
-	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
-	"bugs": {
-		"url": "https://github.com/yongxinyuan/sprite-generator-windows/issues"
-	},
-	"homepage": "https://github.com/yongxinyuan/sprite-generator-windows#readme"
+  "name": "sprite-generator-windows",
+  "version": "1.0.0",
+  "description": "根据svg文件生成mapbox雪碧图(windows版本)",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "sprite-generator-windows": "./bin/sprite-generator-windows.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yongxinyuan/sprite-generator-windows.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yongxinyuan/sprite-generator-windows/issues"
+  },
+  "homepage": "https://github.com/yongxinyuan/sprite-generator-windows#readme",
+  "devDependencies": {
+    "gulp": "^4.0.2"
+  }
 }
