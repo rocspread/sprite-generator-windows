@@ -237,7 +237,10 @@ function build(buffer, dir, config) {
             mkdirp.sync(dir);
 
             fs.writeFileSync(pngPath, pngBuffer);
+            console.log(`${config.fileName}.png is already written`);
+
             fs.writeFileSync(jsonPath, JSON.stringify(outputResult));
+            console.log(`${config.fileName}.json is already written`);
 
             resolve();
 
