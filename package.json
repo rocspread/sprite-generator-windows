@@ -20,7 +20,8 @@
     "url": "https://github.com/yongxinyuan/sprite-generator-windows/issues"
   },
   "homepage": "https://github.com/yongxinyuan/sprite-generator-windows#readme",
-  "devDependencies": {
+  "devDependencies": {},
+  "dependencies": {
     "gulp": "^4.0.2",
     "gulp-svg-sprite": "^1.5.0",
     "svg-sprite": "^1.5.0",
