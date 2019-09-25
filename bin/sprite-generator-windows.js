@@ -66,6 +66,8 @@ const svgSpriterConfig = {
 };
 const cwd = path.resolve(sourceDirPath);
 
+const reg = /^[A-Za-z0-9-_]+.svg$/;
+
 /**
  * @function main
  */
@@ -76,6 +78,9 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
     let storage = [];
 
     files.forEach((file) => {
+        if (!reg.test(file)) {
+            console.log(file);
+        }
         let item = {
             fileName: file,
             path: path.join(cwd, file),
@@ -84,6 +89,7 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
         };
         storage.push(item);
     });
+    console.log('文件读取结束');
 
     spriteFileConfig.forEach((item) => {
 
@@ -93,8 +99,12 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
             translateArray.push(translateRetina(file.contents, item.ratio));
         });
 
+        console.log(item.fileName + '配置结束!');
+
         Promise.all(translateArray)
             .then((result) => {
+
+                console.log(item.fileName + '尺寸转换结束');
 
                 let compileConfig = {
                     fileName: item.fileName,
@@ -115,16 +125,20 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
 
                 });
 
+                console.log(item.fileName + '雪碧图配置结束');
+
                 return compileConfig;
 
             })
             .then((config) => {
                 compile(config)
                     .then((result) => {
+                        console.log(item.fileName + '编译结束');
                         build(result.buffer, result.dir, result.config);
                     })
-                    .catch(() => {
-
+                    .catch((error) => {
+                        console.log('出错了');
+                        console.log(error);
                     });
             })
             .catch((err) => {
@@ -212,6 +226,8 @@ function build(buffer, dir, config) {
 
             if (error) reject(error);
 
+            console.log(config.fileName + '转换xml完成');
+
             let outputResult = {};
 
             xmls.svg.svg.forEach((item) => {
@@ -229,18 +245,28 @@ function build(buffer, dir, config) {
 
             });
 
-            let pngPath = path.resolve(targetDirPath + '/' + config.fileName + '.png');
-            let jsonPath = path.resolve(targetDirPath + '/' + config.fileName + '.json');
-
-            let pngBuffer = svgToPng.sync(buffer);
+            console.log(config.fileName + '雪碧图配置文件编辑完成');
 
             mkdirp.sync(dir);
 
-            fs.writeFileSync(pngPath, pngBuffer);
-            console.log(`${config.fileName}.png is already written`);
+            let pngPath = path.resolve(targetDirPath + '/' + config.fileName + '.png');
+            let jsonPath = path.resolve(targetDirPath + '/' + config.fileName + '.json');
 
-            fs.writeFileSync(jsonPath, JSON.stringify(outputResult));
-            console.log(`${config.fileName}.json is already written`);
+            // let pngBuffer = svgToPng.sync(buffer);
+
+            // console.log(config.fileName + 'png buffer 转换完成');
+
+            // fs.writeFile(pngPath, pngBuffer, function () {
+            //     console.log(`${config.fileName}.png is already written`);
+            // });
+
+            let jsonBuffer = JSON.stringify(outputResult);
+
+            console.log(config.fileName + 'json buffer 转换完成');
+
+            fs.writeFile(jsonPath, jsonBuffer, function () {
+                console.log(`${config.fileName}.json is already written`);
+            });
 
             resolve();
 
