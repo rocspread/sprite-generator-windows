@@ -8,7 +8,7 @@ const parseString = require('xml2js').parseString;
 const SVGSpriter = require('svg-sprite');
 const File = require('Vinyl');
 const mkdirp = require('mkdirp');
-const svgToPng = require('svg2png');
+const { convert } = require('convert-svg-to-png');
 
 const argv = process.argv;
 
@@ -76,10 +76,12 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
     if (err) return;
 
     let storage = [];
+    let error = false;
 
     files.forEach((file) => {
         if (!reg.test(file)) {
             console.log(file);
+            error = true;
         }
         let item = {
             fileName: file,
@@ -89,7 +91,11 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
         };
         storage.push(item);
     });
-    console.log('文件读取结束');
+    // console.log('文件读取结束');
+
+    if (error) {
+        console.log('以上文件名称不合法,仅支持字母,数字,下划线和中划线!!');
+    }
 
     spriteFileConfig.forEach((item) => {
 
@@ -99,12 +105,12 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
             translateArray.push(translateRetina(file.contents, item.ratio));
         });
 
-        console.log(item.fileName + '配置结束!');
+        // console.log(item.fileName + '配置结束!');
 
         Promise.all(translateArray)
             .then((result) => {
 
-                console.log(item.fileName + '尺寸转换结束');
+                // console.log(item.fileName + '尺寸转换结束');
 
                 let compileConfig = {
                     fileName: item.fileName,
@@ -125,7 +131,7 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
 
                 });
 
-                console.log(item.fileName + '雪碧图配置结束');
+                // console.log(item.fileName + '雪碧图配置结束');
 
                 return compileConfig;
 
@@ -133,7 +139,7 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
             .then((config) => {
                 compile(config)
                     .then((result) => {
-                        console.log(item.fileName + '编译结束');
+                        // console.log(item.fileName + '编译结束');
                         build(result.buffer, result.dir, result.config);
                     })
                     .catch((error) => {
@@ -226,7 +232,7 @@ function build(buffer, dir, config) {
 
             if (error) reject(error);
 
-            console.log(config.fileName + '转换xml完成');
+            // console.log(config.fileName + '转换xml完成');
 
             let outputResult = {};
 
@@ -245,24 +251,27 @@ function build(buffer, dir, config) {
 
             });
 
-            console.log(config.fileName + '雪碧图配置文件编辑完成');
+            // console.log(config.fileName + '雪碧图配置文件编辑完成');
 
             mkdirp.sync(dir);
 
             let pngPath = path.resolve(targetDirPath + '/' + config.fileName + '.png');
             let jsonPath = path.resolve(targetDirPath + '/' + config.fileName + '.json');
 
-            // let pngBuffer = svgToPng.sync(buffer);
+            svgToPng(buffer)
+                .then(pngBuffer => {
+                    // console.log(config.fileName + 'png buffer 转换完成');
 
-            // console.log(config.fileName + 'png buffer 转换完成');
+                    fs.writeFile(pngPath, pngBuffer, function () {
+                        console.log(`${config.fileName}.png is already written`);
+                    });
+                });
 
-            // fs.writeFile(pngPath, pngBuffer, function () {
-            //     console.log(`${config.fileName}.png is already written`);
-            // });
+
 
             let jsonBuffer = JSON.stringify(outputResult);
 
-            console.log(config.fileName + 'json buffer 转换完成');
+            // console.log(config.fileName + 'json buffer 转换完成');
 
             fs.writeFile(jsonPath, jsonBuffer, function () {
                 console.log(`${config.fileName}.json is already written`);
@@ -273,4 +282,14 @@ function build(buffer, dir, config) {
         });
     });
 
+}
+
+/**
+ * svg buffer to png
+ */
+function svgToPng(source) {
+    return new Promise(async (resolve, reject) => {
+        const png = await convert(source);
+        resolve(png);
+    });
 }
