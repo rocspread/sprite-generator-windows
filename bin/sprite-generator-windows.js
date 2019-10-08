@@ -95,6 +95,7 @@ glob.glob('**/*.svg', { cwd, cwd }, function (err, files) {
 
     if (error) {
         console.log('以上文件名称不合法,仅支持字母,数字,下划线和中划线!!');
+        return;
     }
 
     spriteFileConfig.forEach((item) => {
