@@ -2,13 +2,15 @@ const glob = require('glob');
 const fs = require('fs');
 const SVGSpriter = require('svg-sprite');
 const readFiles = require('./read-files');
-const RATIOES = require('./configs/ratios');
-const SVG_SPRITER_CONFIG = require('./configs/svg_spriter_config');
 const File = require('Vinyl');
 const parseString = require('xml2js').parseString;
-const translateRatio = require('./translate-ratio');
 const mkdirp = require('mkdirp');
 const { convert } = require('convert-svg-to-png');
+const sd = require('silly-datetime');
+
+const RATIOES = require('./configs/ratios');
+const SVG_SPRITER_CONFIG = require('./configs/svg_spriter_config');
+const translateRatio = require('./translate-ratio');
 const TaskQueue = require('./utils/task_queue');
 
 const SpriteGenerator = async function (source, target) {
@@ -39,7 +41,7 @@ function spriterCompile(data, ratio, source, target) {
     return async function () {
 
         console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
-        console.log(new Date(), `sprite@${ratio}x 编译开始...`);
+        console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 编译开始...`);
 
         const spriter = new SVGSpriter(SVG_SPRITER_CONFIG);
 
@@ -48,7 +50,7 @@ function spriterCompile(data, ratio, source, target) {
             const translated = translateRatio(buffer, ratio);
 
             if (translated.error) {
-                console.log(new Date(), `sprite@${ratio}x ${name} 转换失败...`);
+                console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x ${name} 转换失败...`);
                 return;
             }
 
@@ -59,16 +61,16 @@ function spriterCompile(data, ratio, source, target) {
             }));
         }
 
-        console.log(new Date(), `sprite@${ratio}x 数据填充成功`);
+        console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 数据填充成功`);
 
         const compileResult = await compile(spriter);
 
         if (compileResult.error) {
-            console.log(new Date(), `sprite@${ratio}x 编译失败...`);
+            console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 编译失败...`);
             return;
         }
 
-        console.log(new Date(), `sprite@${ratio}x 编译成功...`);
+        console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 编译成功...`);
 
         const svgBuffer = compileResult.result;
         const svgString = svgBuffer.toString();
@@ -76,16 +78,16 @@ function spriterCompile(data, ratio, source, target) {
         const buildJsonResult = await buildJson(svgString, ratio);
 
         if (buildJsonResult.error) {
-            console.log(new Date(), `sprite@${ratio}x 构建JSON配置失败...`);
+            console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 构建JSON配置失败...`);
             return;
         }
 
-        console.log(new Date(), `sprite@${ratio}x 构建JSON配置成功...`);
+        console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 构建JSON配置成功...`);
 
         const jsonString = buildJsonResult.result;
         const pngBuffer = await svgToPng(svgBuffer);
 
-        console.log(new Date(), `sprite@${ratio}x svg -> png 成功...`);
+        console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x svg -> png 成功...`);
 
         const spriteName = ratio === 1 ? 'sprite' : 'sprite@' + ratio + 'x';
         const pngPath = target + '\\' + spriteName + '.png';
@@ -99,7 +101,7 @@ function spriterCompile(data, ratio, source, target) {
             encoding: 'utf8'
         });
 
-        console.log(new Date(), `sprite@${ratio}x 雪碧图构建成功...`);
+        console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 雪碧图构建成功...`);
     }
 }
 
