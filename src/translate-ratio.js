@@ -52,7 +52,7 @@ const translateRatio = function (buffer, ratio) {
     const tagReverse = tagStr
         .replace(widthReg, `width="${width}px"`)
         .replace(heightReg, `height="${height}px"`);
-        // .replace(viewboxReg, `viewBox="0 0 ${width} ${height}"`);
+    // .replace(viewboxReg, `viewBox="0 0 ${width} ${height}"`);
     const svgReverse = string.replace(tagReg, tagReverse);
 
     return {

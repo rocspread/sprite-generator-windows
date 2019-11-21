@@ -2,122 +2,172 @@ const glob = require('glob');
 const fs = require('fs');
 const SVGSpriter = require('svg-sprite');
 const readFiles = require('./read-files');
-const RATIOES = require('./config').RATIOES;
-const SVG_SPRITER_CONFIG = require('./config').SVG_SPRITER_CONFIG;
+const RATIOES = require('./configs/ratios');
+const SVG_SPRITER_CONFIG = require('./configs/svg_spriter_config');
 const File = require('Vinyl');
 const parseString = require('xml2js').parseString;
 const translateRatio = require('./translate-ratio');
 const mkdirp = require('mkdirp');
 const { convert } = require('convert-svg-to-png');
+const TaskQueue = require('./utils/task_queue');
 
-const SpriteGenerator = function (source, target) {
-    glob.glob('**/*.svg', { cwd: source, cwd: source }, function (err, files) {
+const SpriteGenerator = async function (source, target) {
 
-        if (err) {
-            console.log(`
-                文件列表读取失败!
-            `);
+    const names = await readSvgs(source);
+    const readFilesResult = readFiles(names, source);
+
+    if (readFilesResult.error) return; // 提示信息在read-file文件中
+
+    const data = readFilesResult.result; // { name: '', path: '', buffer: '' }[]
+
+    mkdirp.sync(target);
+
+    const taskQueue = new TaskQueue();
+
+    RATIOES.map(ratio => {
+        taskQueue.add(spriterCompile(data, ratio, source, target));
+    });
+
+    taskQueue.run();
+
+};
+
+/**
+ * compile entrance
+ */
+function spriterCompile(data, ratio, source, target) {
+    return async function () {
+
+        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
+        console.log(new Date(), `sprite@${ratio}x 编译开始...`);
+
+        const spriter = new SVGSpriter(SVG_SPRITER_CONFIG);
+
+        for (const item of data) {
+            const { name, path, buffer } = item;
+            const translated = translateRatio(buffer, ratio);
+
+            if (translated.error) {
+                console.log(new Date(), `sprite@${ratio}x ${name} 转换失败...`);
+                return;
+            }
+
+            spriter.add(new File({
+                path: path,
+                base: source,
+                contents: translated.result
+            }));
+        }
+
+        console.log(new Date(), `sprite@${ratio}x 数据填充成功`);
+
+        const compileResult = await compile(spriter);
+
+        if (compileResult.error) {
+            console.log(new Date(), `sprite@${ratio}x 编译失败...`);
             return;
         }
 
-        const result = readFiles(files, source);
+        console.log(new Date(), `sprite@${ratio}x 编译成功...`);
 
-        if (result.error) return;
+        const svgBuffer = compileResult.result;
+        const svgString = svgBuffer.toString();
 
-        const data = result.result;
-        const spriters = RATIOES.map(ratio => {
-            return {
-                ratio: ratio,
-                spriter: new SVGSpriter(SVG_SPRITER_CONFIG)
-            };
+        const buildJsonResult = await buildJson(svgString, ratio);
+
+        if (buildJsonResult.error) {
+            console.log(new Date(), `sprite@${ratio}x 构建JSON配置失败...`);
+            return;
+        }
+
+        console.log(new Date(), `sprite@${ratio}x 构建JSON配置成功...`);
+
+        const jsonString = buildJsonResult.result;
+        const pngBuffer = await svgToPng(svgBuffer);
+
+        console.log(new Date(), `sprite@${ratio}x svg -> png 成功...`);
+
+        const spriteName = ratio === 1 ? 'sprite' : 'sprite@' + ratio + 'x';
+        const pngPath = target + '\\' + spriteName + '.png';
+        const jsonPath = target + '\\' + spriteName + '.json';
+
+        fs.writeFileSync(pngPath, pngBuffer, {
+            encoding: 'utf8'
         });
 
-        /**
-         * 分别处理每个svg文件放到spriter编译器中
-         */
-        data.map(item => {
-            const { name, path, buffer } = item;
-            spriters.map(sp => {
-                const res = translateRatio(buffer, sp.ratio);
-                if (res.error) {
-                    console.log(`${name} ${error.message}`);
-                    return;
-                }
-                sp.spriter.add(new File({
-                    path: path,
-                    base: source,
-                    contents: res.result
-                }));
-            });
-
+        fs.writeFileSync(jsonPath, jsonString, {
+            encoding: 'utf8'
         });
 
-        // 创建文件夹
-        mkdirp.sync(target);
+        console.log(new Date(), `sprite@${ratio}x 雪碧图构建成功...`);
+    }
+}
 
-        /**
-         * 分别编译四种尺寸
-         */
-        spriters.map(item => {
-            item.spriter.compile((err, res) => {
-
-                if (err) {
-                    console.log(`
-                        sprite@${item.ratio}编译失败
-                    `);
-                    return;
-                }
-
-                const buffer = res.css.sprite.contents;
-                const str = buffer.toString();
-
-                parseString(str, function (err, xmls) {
-
-                    if (err) {
-                        console.log('雪碧图获取图标位置失败');
-                        return;
-                    }
-
-                    const configJson = {};
-                    xmls.svg.svg.forEach((svg) => {
-                        let obj = svg['$'];
-                        configJson[obj.id] = {
-                            width: obj.width ? parseInt(obj.width) : 0,
-                            height: obj.height ? parseInt(obj.height) : 0,
-                            x: obj.x ? parseInt(obj.x) : 0,
-                            y: obj.y ? parseInt(obj.y) : 0,
-                            pixelRatio: item.ratio,
-                            sdf: false
-                        };
-                    });
-
-                    const spriteName = item.ratio === 1 ? 'sprite' : 'sprite@' + item.ratio + 'x';
-                    const pngPath = target + '\\' + spriteName + '.png';
-                    const jsonPath = target + '\\' + spriteName + '.json';
-
-                    svgToPng(buffer)
-                        .then((pngBuffer) => {
-                            fs.writeFile(pngPath, pngBuffer, function () {
-                                console.log(`${spriteName}.png is already written`);
-                            });
-                            fs.writeFile(jsonPath, JSON.stringify(configJson), function () {
-                                console.log(`${spriteName}.json is already written`);
-                            });
-                        })
-                        .catch(err => {
-                            console.log(err);
-                        })
-
-                });
-
+/**
+ * build json
+ */
+async function buildJson(str, ratio) {
+    return new Promise(async resolve => {
+        parseString(str, function (err, xmls) {
+            if (err) {
+                resolve({ error: new Error('构建JSON配置失败...'), result: null });
+                return;
+            }
+            resolve({
+                error: null,
+                result: JSON.stringify(xmls.svg.svg.reduce((reducer, current) => {
+                    const svg = current['$'];
+                    const id = svg.id;
+                    const width = svg.width ? parseInt(svg.width) : 0;
+                    const height = svg.height ? parseInt(svg.height) : 0;
+                    const x = svg.x ? parseInt(svg.x) : 0;
+                    const y = svg.y ? parseInt(svg.y) : 0;
+                    reducer[id] = {
+                        width: width,
+                        height: height,
+                        x: x,
+                        y: y,
+                        pixelRatio: ratio,
+                        sdf: false
+                    };
+                    return reducer;
+                }, {}))
             });
         });
+    });
+}
 
-    })
-};
+/**
+ * compile
+ */
+async function compile(spriter) {
+    return new Promise(async resolve => {
+        spriter.compile((err, res) => {
+            resolve(
+                err
+                    ? { error: new Error('编译失败'), result: null }
+                    : { error: null, result: res.css.sprite.contents }
+            );
+        });
+    });
+}
 
-function svgToPng(source) {
-    return new Promise(async (resolve, reject) => {
+/**
+ * read svgs
+ */
+async function readSvgs(source) {
+    return new Promise(async resolve => {
+        glob.glob('**/*.svg', { cwd: source, cwd: source }, function (err, files) {
+            resolve(err ? [] : files);
+        });
+    });
+}
+
+/**
+ * svg -> png
+ */
+async function svgToPng(source) {
+    return new Promise(async resolve => {
         const png = await convert(source);
         resolve(png);
     });
