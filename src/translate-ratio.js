@@ -1,5 +1,5 @@
 
-const tagReg = /((\<svg )(.+)\>)/;
+const tagReg = /((\<svg )([\s\S]*?)\>)/;
 const widthReg = /(width=\")([0-9]+)(px\")/;
 const heightReg = /(height=\")([0-9]+)(px\")/;
 const viewboxReg = /(viewBox=\")([0-9]| )+(\")/;
