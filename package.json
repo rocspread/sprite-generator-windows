@@ -1,6 +1,6 @@
 {
   "name": "sprite-generator-windows",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "根据svg文件生成mapbox雪碧图(windows版本)",
   "main": "app.js",
   "scripts": {
