@@ -1,3 +1,3 @@
-const RATIOS = [1, 2, 3, 4];
+const RATIOS = [1, 2];
 
 module.exports = RATIOS;
