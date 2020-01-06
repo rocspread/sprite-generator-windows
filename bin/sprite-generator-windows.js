@@ -2,6 +2,9 @@
 
 const path = require('path');
 const fs = require('fs');
+
+const RATIOS = require('../src/configs/ratios');
+
 const SpriteGenerator = require('../src/sprite-generator');
 
 const argv = process.argv;
@@ -47,7 +50,7 @@ const targetDir = path.resolve(config.target);
 const sdfs = config.sdfs || [];
 
 // ratios
-const ratios = config.ratios || [1, 2];
+const ratios = config.ratios || RATIOS;
 
 // 构建雪碧图
 SpriteGenerator(sourceDir, targetDir, {

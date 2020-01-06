@@ -8,12 +8,12 @@ const mkdirp = require('mkdirp');
 const { convert } = require('convert-svg-to-png');
 const sd = require('silly-datetime');
 
-const RATIOES = require('./configs/ratios');
+const RATIOS = require('./configs/ratios');
 const SVG_SPRITER_CONFIG = require('./configs/svg_spriter_config');
 const translateRatio = require('./translate-ratio');
 const TaskQueue = require('./utils/task_queue');
 
-const SpriteGenerator = async function (source, target) {
+const SpriteGenerator = async function (source, target, options) {
 
     const names = await readSvgs(source);
     const readFilesResult = readFiles(names, source);
@@ -26,8 +26,12 @@ const SpriteGenerator = async function (source, target) {
 
     const taskQueue = new TaskQueue();
 
-    RATIOES.map(ratio => {
-        taskQueue.add(spriterCompile(data, ratio, source, target));
+    options = options || {};
+
+    const ratios = options.ratios || RATIOS;
+
+    ratios.map(ratio => {
+        taskQueue.add(spriterCompile(data, ratio, source, target, options.sdfs));
     });
 
     taskQueue.run();
@@ -37,7 +41,7 @@ const SpriteGenerator = async function (source, target) {
 /**
  * compile entrance
  */
-function spriterCompile(data, ratio, source, target) {
+function spriterCompile(data, ratio, source, target, sdfs) {
     return async function () {
 
         console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
@@ -75,7 +79,7 @@ function spriterCompile(data, ratio, source, target) {
         const svgBuffer = compileResult.result;
         const svgString = svgBuffer.toString();
 
-        const buildJsonResult = await buildJson(svgString, ratio);
+        const buildJsonResult = await buildJson(svgString, ratio, sdfs);
 
         if (buildJsonResult.error) {
             console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x 构建JSON配置失败...`);
@@ -108,7 +112,8 @@ function spriterCompile(data, ratio, source, target) {
 /**
  * build json
  */
-async function buildJson(str, ratio) {
+async function buildJson(str, ratio, sdfs) {
+    sdfs = sdfs || [];
     return new Promise(async resolve => {
         parseString(str, function (err, xmls) {
             if (err) {
@@ -130,7 +135,7 @@ async function buildJson(str, ratio) {
                         x: x,
                         y: y,
                         pixelRatio: ratio,
-                        sdf: false
+                        sdf: sdfs.indexOf(id) > -1 ? true : false
                     };
                     return reducer;
                 }, {}))
