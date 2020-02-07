@@ -1,5 +1,6 @@
 const glob = require('glob');
 const fs = require('fs');
+const path = require('path');
 const SVGSpriter = require('svg-sprite');
 const readFiles = require('./read-files');
 const File = require('Vinyl');
@@ -94,8 +95,8 @@ function spriterCompile(data, ratio, source, target, sdfs) {
         console.log(sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss'), `sprite@${ratio}x svg -> png 成功...`);
 
         const spriteName = ratio === 1 ? 'sprite' : 'sprite@' + ratio + 'x';
-        const pngPath = target + '\\' + spriteName + '.png';
-        const jsonPath = target + '\\' + spriteName + '.json';
+        const pngPath = path.join(target, spriteName) + '.png';
+        const jsonPath = path.join(target, spriteName) + '.json';
 
         fs.writeFileSync(pngPath, pngBuffer, {
             encoding: 'utf8'
